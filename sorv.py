@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-#  sorv.py
+#  bbiwy.py
 #  
 #  Copyright 2026 Giulio Pecorella
 #  
@@ -20,9 +20,11 @@
 #  MA 02110-1301, USA.
 #  
 #  
+
 import os
 import sys
 import smtplib
+import ssl
 import time
 from email.message import EmailMessage
 from picamera2 import Picamera2
@@ -31,57 +33,60 @@ from signal import pause
 
 
 
-# Email address to send the photo to
+# Email configuration
+port = 465
+smtp_server = "smtp.gmail.com"
+context = ssl.create_default_context()
 Mail = 'gigifinizio@gmail.com'
-
-# Password linked to the email account
 Password = 'sbucciati_personalmente'
 
 # Path to photo to be sent
-Photo = '/home/Pictures/photo.jpg'
+Photo = '/home/Pictures/photo'
+
+# Mail message configuration
+msg = EmailMessage()
+msg['Subject'] = 'Photo'
+msg['From'] = Mail
+msg['To'] = Mail
 
 
 
-def photo():
-    
-    cam = Picamera2()
-    cam.start()
-    cam.capture_file(Photo)
-    cam.stop()
+def take_photo():
+    n = 0
+    while n < 3:
+        n += 1
+        cam = Picamera2()
+        cam.start()
+        cam.capture_file(Photo + str(n) + '.jpg')
+        time.sleep(1)
+        cam.stop()
     cam.close()
+
+def movement_revealed():
     
-    msg = EmailMessage()
-    msg['Subject'] = 'Photo'
-    msg['From'] = Mail
-    msg['To'] = Mail
-    
-    with open(Photo,'rb') as f:
-        dati = f.read()
-        
-    msg.add_attachment(dati, maintype='image',subtype='jpeg',filename='photo.jpg')
-    
-    try:
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-            smtp.login(Mail, Password)
-            smtp.send_message(msg)
+    take_photo()
+    for n in range(1, 4):
+        with open(Photo + str(n) + '.jpg', 'rb') as f:
+            photograph = f.read()
+        msg.add_attachment(photograph, maintype='image',
+                           subtype='jpeg',filename='photo.jpg')
+
+    with smtplib.SMTP_SSL(smtp_server, port, context=context) as smtp:
+        smtp.login(Mail, Password)
+        smtp.send_message(msg)
             
-    finally:
-        if os.path.exists(Photo):
-            os.remove(Photo)
-    
     return 
 
 def main(args):
     
     pir = MotionSensor(17)
     time.sleep(2)
-
-    pir.when_motion = photo
+    pir.when_motion = movement_revealed
     pir.when_no_motion = lambda: print('no movement detected')
-
     pause()
     
     return 0
+
 
 
 if __name__ == '__main__':

@@ -53,13 +53,14 @@ msg['To'] = Mail
 
 def take_photo():
     n = 0
+    cam = Picamera2()
+    cam.start()
+    time.sleep(1)
     while n < 3:
         n += 1
-        cam = Picamera2()
-        cam.start()
         cam.capture_file(Photo + str(n) + '.jpg')
         time.sleep(1)
-        cam.stop()
+    cam.stop()
     cam.close()
 
 def movement_revealed():
